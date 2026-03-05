@@ -16,7 +16,8 @@
                 <a href="#inicio" class="nav-link active">Inicio</a>
                 <a href="#productos" class="nav-link">Productos</a>
                 <a href="#ofertas" class="nav-link">Ofertas</a>
-                <a href="#contacto" class="nav-link">Contacto</a>
+                <a href="support.html" class="nav-link">Soporte</a>
+                <a href="login.html" class="nav-link" id="navLogin">Mi Cuenta</a>
             </nav>
             <div class="header-actions">
                 <div class="search-box">
@@ -45,7 +46,8 @@
         <a href="#inicio" class="nav-link">Inicio</a>
         <a href="#productos" class="nav-link">Productos</a>
         <a href="#ofertas" class="nav-link">Ofertas</a>
-        <a href="#contacto" class="nav-link">Contacto</a>
+        <a href="support.html" class="nav-link">Soporte</a>
+        <a href="login.html" class="nav-link" id="navLoginMobile">Mi Cuenta</a>
     </div>
 
     <!-- Hero Section -->
@@ -248,6 +250,25 @@
         </div>
     </footer>
 
+    <script src="js/auth.js"></script>
     <script src="js/app.js"></script>
+    <script>
+        // Update nav links based on login state
+        const userSession = AUTH.getSession();
+        if (userSession) {
+            const navLogin = document.getElementById('navLogin');
+            const navLoginMobile = document.getElementById('navLoginMobile');
+            if (navLogin) {
+                navLogin.textContent = userSession.name.split(' ')[0];
+                if (userSession.role === 'admin') navLogin.href = 'admin.html';
+                else navLogin.href = 'support.html';
+            }
+            if (navLoginMobile) {
+                navLoginMobile.textContent = userSession.name.split(' ')[0];
+                if (userSession.role === 'admin') navLoginMobile.href = 'admin.html';
+                else navLoginMobile.href = 'support.html';
+            }
+        }
+    </script>
 </body>
 </html>

@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DropShop - Iniciar Sesion</title>
+    <link rel="stylesheet" href="css/shared.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        .auth-page {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #6c5ce7 0%, #a29bfe 50%, #74b9ff 100%);
+            padding: 20px;
+        }
+
+        .auth-container {
+            width: 100%;
+            max-width: 440px;
+        }
+
+        .auth-logo {
+            text-align: center;
+            margin-bottom: 32px;
+            color: #fff;
+        }
+
+        .auth-logo h1 {
+            font-size: 2rem;
+        }
+
+        .auth-logo h1 span { opacity: 0.8; }
+
+        .auth-logo p {
+            opacity: 0.8;
+            margin-top: 4px;
+        }
+
+        .auth-card {
+            background: var(--white);
+            border-radius: var(--radius);
+            padding: 36px;
+            box-shadow: var(--shadow-lg);
+        }
+
+        [data-theme="dark"] .auth-card {
+            background: #16213e;
+        }
+
+        .auth-tabs {
+            display: flex;
+            margin-bottom: 28px;
+            border-bottom: 2px solid rgba(0,0,0,0.06);
+        }
+
+        [data-theme="dark"] .auth-tabs {
+            border-bottom-color: #2a2a4a;
+        }
+
+        .auth-tab {
+            flex: 1;
+            padding: 12px;
+            text-align: center;
+            font-weight: 600;
+            font-size: 0.95rem;
+            color: var(--gray);
+            border-bottom: 2px solid transparent;
+            margin-bottom: -2px;
+            transition: var(--transition);
+        }
+
+        .auth-tab:hover { color: var(--primary); }
+
+        .auth-tab.active {
+            color: var(--primary);
+            border-bottom-color: var(--primary);
+        }
+
+        .auth-form { display: none; }
+        .auth-form.active { display: block; }
+
+        .form-footer {
+            text-align: center;
+            margin-top: 20px;
+            font-size: 0.85rem;
+            color: var(--gray);
+        }
+
+        .form-footer a {
+            color: var(--primary);
+            font-weight: 600;
+        }
+
+        .demo-accounts {
+            margin-top: 24px;
+            padding: 16px;
+            background: rgba(108,92,231,0.05);
+            border-radius: var(--radius-sm);
+            border: 1px solid rgba(108,92,231,0.1);
+        }
+
+        .demo-accounts h4 {
+            font-size: 0.85rem;
+            color: var(--primary);
+            margin-bottom: 10px;
+        }
+
+        .demo-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 6px 0;
+            font-size: 0.82rem;
+            color: var(--gray);
+        }
+
+        .demo-item button {
+            font-size: 0.78rem;
+            color: var(--primary);
+            font-weight: 600;
+        }
+
+        .demo-item button:hover { text-decoration: underline; }
+
+        .back-link {
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .back-link a {
+            color: rgba(255,255,255,0.8);
+            font-size: 0.9rem;
+        }
+
+        .back-link a:hover { color: #fff; }
+
+        .theme-btn-float {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.2);
+            color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(10px);
+            transition: var(--transition);
+        }
+
+        .theme-btn-float:hover { background: rgba(255,255,255,0.3); }
+    </style>
+</head>
+<body>
+    <button class="theme-btn-float" id="themeToggle" aria-label="Modo oscuro">
+        <svg class="icon-sun" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+        <svg class="icon-moon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:none"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+    </button>
+
+    <div class="auth-page">
+        <div class="auth-container">
+            <div class="auth-logo">
+                <h1>Drop<span>Shop</span></h1>
+                <p>Tu tienda online de confianza</p>
+            </div>
+
+            <div class="auth-card">
+                <div class="auth-tabs">
+                    <button class="auth-tab active" data-tab="login">Iniciar Sesion</button>
+                    <button class="auth-tab" data-tab="register">Registrarse</button>
+                </div>
+
+                <div class="alert alert-error" id="alertError"></div>
+                <div class="alert alert-success" id="alertSuccess"></div>
+
+                <!-- Login Form -->
+                <form class="auth-form active" id="loginForm">
+                    <div class="form-group">
+                        <label for="loginEmail">Correo Electronico</label>
+                        <input type="email" id="loginEmail" class="form-control" placeholder="tu@correo.com" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="loginPassword">Contrasena</label>
+                        <input type="password" id="loginPassword" class="form-control" placeholder="Tu contrasena" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-block">Iniciar Sesion</button>
+
+                    <div class="demo-accounts">
+                        <h4>Cuentas de prueba:</h4>
+                        <div class="demo-item">
+                            <span>👑 Admin: admin@dropshop.com</span>
+                            <button type="button" onclick="fillLogin('admin@dropshop.com','admin123')">Usar</button>
+                        </div>
+                        <div class="demo-item">
+                            <span>👨‍💼 Empleado: carlos@dropshop.com</span>
+                            <button type="button" onclick="fillLogin('carlos@dropshop.com','emp123')">Usar</button>
+                        </div>
+                    </div>
+                </form>
+
+                <!-- Register Form -->
+                <form class="auth-form" id="registerForm">
+                    <div class="form-group">
+                        <label for="regName">Nombre Completo</label>
+                        <input type="text" id="regName" class="form-control" placeholder="Tu nombre" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="regEmail">Correo Electronico</label>
+                        <input type="email" id="regEmail" class="form-control" placeholder="tu@correo.com" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="regPassword">Contrasena</label>
+                        <input type="password" id="regPassword" class="form-control" placeholder="Minimo 6 caracteres" required minlength="6">
+                    </div>
+                    <div class="form-group">
+                        <label for="regConfirm">Confirmar Contrasena</label>
+                        <input type="password" id="regConfirm" class="form-control" placeholder="Repite tu contrasena" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-block">Crear Cuenta</button>
+                    <div class="form-footer">
+                        Al registrarte aceptas nuestros <a href="#">Terminos</a>
+                    </div>
+                </form>
+            </div>
+
+            <div class="back-link">
+                <a href="index.html">← Volver a la tienda</a>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/auth.js"></script>
+    <script>
+        // Theme
+        const themeToggle = document.getElementById('themeToggle');
+        const iconSun = themeToggle.querySelector('.icon-sun');
+        const iconMoon = themeToggle.querySelector('.icon-moon');
+
+        function setTheme(dark) {
+            document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
+            iconSun.style.display = dark ? 'none' : 'block';
+            iconMoon.style.display = dark ? 'block' : 'none';
+            localStorage.setItem('theme', dark ? 'dark' : 'light');
+        }
+
+        const savedTheme = localStorage.getItem('theme');
+        if (savedTheme === 'dark' || (!savedTheme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            setTheme(true);
+        }
+
+        themeToggle.addEventListener('click', () => {
+            const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+            setTheme(!isDark);
+        });
+
+        // Redirect if already logged in
+        if (AUTH.isLoggedIn()) {
+            const s = AUTH.getSession();
+            if (s.role === 'admin') window.location.href = 'admin.html';
+            else if (s.role === 'employee') window.location.href = 'support.html';
+            else window.location.href = 'index.html';
+        }
+
+        // Tabs
+        document.querySelectorAll('.auth-tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.auth-form').forEach(f => f.classList.remove('active'));
+                tab.classList.add('active');
+                const formId = tab.dataset.tab === 'login' ? 'loginForm' : 'registerForm';
+                document.getElementById(formId).classList.add('active');
+                hideAlerts();
+            });
+        });
+
+        const alertError = document.getElementById('alertError');
+        const alertSuccess = document.getElementById('alertSuccess');
+
+        function showError(msg) {
+            alertError.textContent = msg;
+            alertError.classList.add('show');
+            alertSuccess.classList.remove('show');
+        }
+
+        function showSuccess(msg) {
+            alertSuccess.textContent = msg;
+            alertSuccess.classList.add('show');
+            alertError.classList.remove('show');
+        }
+
+        function hideAlerts() {
+            alertError.classList.remove('show');
+            alertSuccess.classList.remove('show');
+        }
+
+        function fillLogin(email, pass) {
+            document.getElementById('loginEmail').value = email;
+            document.getElementById('loginPassword').value = pass;
+        }
+
+        // Login
+        document.getElementById('loginForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+            const result = AUTH.login(email, password);
+
+            if (!result.success) {
+                showError(result.message);
+                return;
+            }
+
+            showSuccess('Inicio de sesion exitoso! Redirigiendo...');
+            setTimeout(() => {
+                if (result.user.role === 'admin') window.location.href = 'admin.html';
+                else if (result.user.role === 'employee') window.location.href = 'support.html';
+                else window.location.href = 'index.html';
+            }, 800);
+        });
+
+        // Register
+        document.getElementById('registerForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const name = document.getElementById('regName').value;
+            const email = document.getElementById('regEmail').value;
+            const password = document.getElementById('regPassword').value;
+            const confirm = document.getElementById('regConfirm').value;
+
+            if (password !== confirm) {
+                showError('Las contrasenas no coinciden');
+                return;
+            }
+
+            const result = AUTH.register(name, email, password, 'client');
+
+            if (!result.success) {
+                showError(result.message);
+                return;
+            }
+
+            showSuccess('Cuenta creada exitosamente! Ahora inicia sesion.');
+            document.getElementById('registerForm').reset();
+            setTimeout(() => {
+                document.querySelector('[data-tab="login"]').click();
+            }, 1500);
+        });
+    </script>
+</body>
+</html>

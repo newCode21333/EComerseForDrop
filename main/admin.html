@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DropShop - Panel Admin</title>
+    <link rel="stylesheet" href="css/shared.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        .admin-layout {
+            display: flex;
+            min-height: calc(100vh - 62px);
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 240px;
+            background: var(--white);
+            border-right: 1px solid rgba(0,0,0,0.06);
+            padding: 20px 0;
+            flex-shrink: 0;
+        }
+
+        [data-theme="dark"] .sidebar { border-right-color: #2a2a4a; }
+
+        .sidebar-nav a {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px 24px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            color: var(--gray);
+            transition: var(--transition);
+        }
+
+        .sidebar-nav a:hover { background: rgba(108,92,231,0.05); color: var(--primary); }
+        .sidebar-nav a.active { color: var(--primary); background: rgba(108,92,231,0.08); border-right: 3px solid var(--primary); }
+        .sidebar-nav a .nav-icon { font-size: 1.2rem; }
+
+        /* Main Content */
+        .admin-main {
+            flex: 1;
+            padding: 24px;
+            overflow-y: auto;
+        }
+
+        .admin-title {
+            font-size: 1.5rem;
+            margin-bottom: 24px;
+        }
+
+        /* Stats */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-bottom: 32px;
+        }
+
+        .stat-card {
+            background: var(--white);
+            padding: 20px;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        .stat-label {
+            font-size: 0.85rem;
+            color: var(--gray);
+            margin-top: 4px;
+        }
+
+        /* Sections */
+        .admin-section { display: none; }
+        .admin-section.active { display: block; }
+
+        .section-actions {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+        }
+
+        .table-user {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .table-user-avatar { font-size: 1.5rem; }
+
+        .table-user-info .name { font-weight: 600; }
+        .table-user-info .email { font-size: 0.8rem; color: var(--gray); }
+
+        .actions-cell {
+            display: flex;
+            gap: 8px;
+        }
+
+        @media (max-width: 768px) {
+            .sidebar { display: none; }
+            .admin-layout { flex-direction: column; }
+            .stats-grid { grid-template-columns: 1fr 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="page-header">
+        <a href="index.html" class="logo">Drop<span>Shop</span></a>
+        <div class="header-right">
+            <button class="theme-toggle" id="themeToggle">
+                <svg class="icon-sun" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+                <svg class="icon-moon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:none"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+            </button>
+            <div class="user-info">
+                <span class="user-avatar" id="headerAvatar">👑</span>
+                <div>
+                    <div class="user-name" id="headerName">Admin</div>
+                    <div class="user-role">Administrador</div>
+                </div>
+            </div>
+            <button class="btn btn-ghost btn-small" onclick="AUTH.logout()">Salir</button>
+        </div>
+    </header>
+
+    <div class="admin-layout">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <nav class="sidebar-nav">
+                <a href="#" class="active" data-section="dashboard"><span class="nav-icon">📊</span> Dashboard</a>
+                <a href="#" data-section="employees"><span class="nav-icon">👨‍💼</span> Empleados</a>
+                <a href="#" data-section="clients"><span class="nav-icon">👥</span> Clientes</a>
+                <a href="#" data-section="chats"><span class="nav-icon">💬</span> Chats</a>
+                <a href="support.html"><span class="nav-icon">🎧</span> Soporte</a>
+                <a href="index.html"><span class="nav-icon">🏪</span> Ver Tienda</a>
+            </nav>
+        </aside>
+
+        <!-- Main -->
+        <main class="admin-main">
+            <!-- Dashboard -->
+            <section class="admin-section active" id="section-dashboard">
+                <h2 class="admin-title">Dashboard</h2>
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-value" id="statTotal">0</div>
+                        <div class="stat-label">Usuarios Totales</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="statEmployees">0</div>
+                        <div class="stat-label">Empleados</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="statClients">0</div>
+                        <div class="stat-label">Clientes</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="statChats">0</div>
+                        <div class="stat-label">Chats Activos</div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header"><h3>Usuarios Recientes</h3></div>
+                    <div class="card-body">
+                        <div class="table-container">
+                            <table class="table">
+                                <thead>
+                                    <tr><th>Usuario</th><th>Rol</th><th>Registro</th></tr>
+                                </thead>
+                                <tbody id="recentUsers"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Employees -->
+            <section class="admin-section" id="section-employees">
+                <h2 class="admin-title">Gestion de Empleados</h2>
+                <div class="section-actions">
+                    <button class="btn btn-primary" onclick="openModal('addEmployee')">+ Nuevo Empleado</button>
+                </div>
+                <div class="card">
+                    <div class="card-body">
+                        <div class="table-container">
+                            <table class="table">
+                                <thead>
+                                    <tr><th>Empleado</th><th>Departamento</th><th>Estado</th><th>Registro</th><th>Acciones</th></tr>
+                                </thead>
+                                <tbody id="employeesTable"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Clients -->
+            <section class="admin-section" id="section-clients">
+                <h2 class="admin-title">Clientes Registrados</h2>
+                <div class="card">
+                    <div class="card-body">
+                        <div class="table-container">
+                            <table class="table">
+                                <thead>
+                                    <tr><th>Cliente</th><th>Registro</th><th>Acciones</th></tr>
+                                </thead>
+                                <tbody id="clientsTable"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Chats -->
+            <section class="admin-section" id="section-chats">
+                <h2 class="admin-title">Historial de Chats</h2>
+                <div class="card">
+                    <div class="card-body">
+                        <div class="table-container">
+                            <table class="table">
+                                <thead>
+                                    <tr><th>Cliente</th><th>Empleado</th><th>Mensajes</th><th>Estado</th><th>Fecha</th></tr>
+                                </thead>
+                                <tbody id="chatsTable"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Add Employee Modal -->
+    <div class="modal-overlay" id="addEmployeeModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3>Nuevo Empleado</h3>
+                <button class="modal-close" onclick="closeModal('addEmployee')">&times;</button>
+            </div>
+            <form id="addEmployeeForm">
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label>Nombre Completo</label>
+                        <input type="text" class="form-control" id="empName" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Correo Electronico</label>
+                        <input type="email" class="form-control" id="empEmail" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Contrasena</label>
+                        <input type="password" class="form-control" id="empPassword" required minlength="6">
+                    </div>
+                    <div class="form-group">
+                        <label>Departamento</label>
+                        <select class="form-control" id="empDept">
+                            <option value="Soporte">Soporte</option>
+                            <option value="Ventas">Ventas</option>
+                            <option value="Soporte Tecnico">Soporte Tecnico</option>
+                        </select>
+                    </div>
+                    <div class="alert alert-error" id="empAlert"></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-ghost" onclick="closeModal('addEmployee')">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Crear Empleado</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="js/auth.js"></script>
+    <script>
+        // Auth check
+        const session = AUTH.requireAuth(['admin']);
+        if (!session) throw new Error('No auth');
+
+        document.getElementById('headerName').textContent = session.name;
+        document.getElementById('headerAvatar').textContent = session.avatar;
+
+        // Theme
+        const themeToggle = document.getElementById('themeToggle');
+        const iconSun = themeToggle.querySelector('.icon-sun');
+        const iconMoon = themeToggle.querySelector('.icon-moon');
+
+        function setTheme(dark) {
+            document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
+            iconSun.style.display = dark ? 'none' : 'block';
+            iconMoon.style.display = dark ? 'block' : 'none';
+            localStorage.setItem('theme', dark ? 'dark' : 'light');
+        }
+
+        const savedTheme = localStorage.getItem('theme');
+        if (savedTheme === 'dark' || (!savedTheme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            setTheme(true);
+        }
+        themeToggle.addEventListener('click', () => {
+            setTheme(document.documentElement.getAttribute('data-theme') !== 'dark');
+        });
+
+        // Sidebar Nav
+        document.querySelectorAll('.sidebar-nav a[data-section]').forEach(link => {
+            link.addEventListener('click', (e) => {
+                e.preventDefault();
+                document.querySelectorAll('.sidebar-nav a').forEach(l => l.classList.remove('active'));
+                link.classList.add('active');
+                document.querySelectorAll('.admin-section').forEach(s => s.classList.remove('active'));
+                document.getElementById('section-' + link.dataset.section).classList.add('active');
+                refreshData();
+            });
+        });
+
+        // Modal
+        function openModal(name) {
+            document.getElementById(name + 'Modal').classList.add('active');
+        }
+
+        function closeModal(name) {
+            document.getElementById(name + 'Modal').classList.remove('active');
+        }
+
+        // Render Data
+        function getUserName(id) {
+            const users = AUTH.getUsers();
+            const u = users.find(u => u.id === id);
+            return u ? u.name : 'Desconocido';
+        }
+
+        function refreshData() {
+            const users = AUTH.getUsers();
+            const employees = users.filter(u => u.role === 'employee');
+            const clients = users.filter(u => u.role === 'client');
+            const chats = CHAT.getChats();
+            const activeChats = chats.filter(c => c.status === 'open');
+
+            // Stats
+            document.getElementById('statTotal').textContent = users.length;
+            document.getElementById('statEmployees').textContent = employees.length;
+            document.getElementById('statClients').textContent = clients.length;
+            document.getElementById('statChats').textContent = activeChats.length;
+
+            // Recent users
+            const recent = [...users].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)).slice(0, 5);
+            document.getElementById('recentUsers').innerHTML = recent.map(u => `
+                <tr>
+                    <td><div class="table-user"><span class="table-user-avatar">${u.avatar}</span><div class="table-user-info"><div class="name">${u.name}</div><div class="email">${u.email}</div></div></div></td>
+                    <td><span class="badge badge-${u.role}">${u.role}</span></td>
+                    <td>${u.createdAt}</td>
+                </tr>
+            `).join('');
+
+            // Employees table
+            document.getElementById('employeesTable').innerHTML = employees.map(e => `
+                <tr>
+                    <td><div class="table-user"><span class="table-user-avatar">${e.avatar}</span><div class="table-user-info"><div class="name">${e.name}</div><div class="email">${e.email}</div></div></div></td>
+                    <td>${e.department || '-'}</td>
+                    <td><span class="badge badge-${e.status || 'offline'}">${e.status || 'offline'}</span></td>
+                    <td>${e.createdAt}</td>
+                    <td class="actions-cell">
+                        <button class="btn btn-danger btn-small" onclick="deleteUser(${e.id})">Eliminar</button>
+                    </td>
+                </tr>
+            `).join('');
+
+            // Clients table
+            document.getElementById('clientsTable').innerHTML = clients.length === 0
+                ? '<tr><td colspan="3" style="text-align:center;color:var(--gray);padding:32px;">No hay clientes registrados</td></tr>'
+                : clients.map(c => `
+                <tr>
+                    <td><div class="table-user"><span class="table-user-avatar">${c.avatar}</span><div class="table-user-info"><div class="name">${c.name}</div><div class="email">${c.email}</div></div></div></td>
+                    <td>${c.createdAt}</td>
+                    <td class="actions-cell">
+                        <button class="btn btn-danger btn-small" onclick="deleteUser(${c.id})">Eliminar</button>
+                    </td>
+                </tr>
+            `).join('');
+
+            // Chats table
+            document.getElementById('chatsTable').innerHTML = chats.length === 0
+                ? '<tr><td colspan="5" style="text-align:center;color:var(--gray);padding:32px;">No hay chats registrados</td></tr>'
+                : chats.map(c => `
+                <tr>
+                    <td>${getUserName(c.clientId)}</td>
+                    <td>${getUserName(c.employeeId)}</td>
+                    <td>${c.messages.length}</td>
+                    <td><span class="badge badge-${c.status === 'open' ? 'online' : 'offline'}">${c.status === 'open' ? 'Abierto' : 'Cerrado'}</span></td>
+                    <td>${new Date(c.createdAt).toLocaleDateString()}</td>
+                </tr>
+            `).join('');
+        }
+
+        function deleteUser(id) {
+            if (confirm('Estas seguro de eliminar este usuario?')) {
+                AUTH.deleteUser(id);
+                refreshData();
+            }
+        }
+
+        // Add Employee
+        document.getElementById('addEmployeeForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const name = document.getElementById('empName').value;
+            const email = document.getElementById('empEmail').value;
+            const password = document.getElementById('empPassword').value;
+            const dept = document.getElementById('empDept').value;
+
+            const result = AUTH.register(name, email, password, 'employee');
+            if (!result.success) {
+                const alert = document.getElementById('empAlert');
+                alert.textContent = result.message;
+                alert.classList.add('show');
+                return;
+            }
+
+            // Set department
+            AUTH.updateUser(result.user.id, { department: dept });
+            closeModal('addEmployee');
+            document.getElementById('addEmployeeForm').reset();
+            refreshData();
+        });
+
+        // Init
+        refreshData();
+    </script>
+</body>
+</html>
