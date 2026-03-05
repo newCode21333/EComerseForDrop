@@ -1013,3 +1013,74 @@ button {
 @media (max-width: 400px) {
     .products-grid { grid-template-columns: 1fr; }
 }
+
+/* ===== Dark Mode ===== */
+[data-theme="dark"] {
+    --dark: #f0f0f0;
+    --gray: #a0a0a0;
+    --light-gray: #666;
+    --bg: #1a1a2e;
+    --white: #16213e;
+    --shadow: 0 2px 15px rgba(0,0,0,0.3);
+    --shadow-lg: 0 10px 40px rgba(0,0,0,0.4);
+}
+
+[data-theme="dark"] .header {
+    background: rgba(22,33,62,0.95);
+}
+
+[data-theme="dark"] .search-box input {
+    color: #f0f0f0;
+}
+
+[data-theme="dark"] .mobile-nav {
+    background: #16213e;
+}
+
+[data-theme="dark"] .menu-toggle span {
+    background: #f0f0f0;
+}
+
+[data-theme="dark"] .product-image {
+    background: linear-gradient(135deg, #1a1a2e, #2a2a4a);
+}
+
+[data-theme="dark"] .product-wishlist {
+    background: #2a2a4a;
+}
+
+[data-theme="dark"] .sort-options select {
+    background: #16213e;
+    color: #a0a0a0;
+    border-color: #333;
+}
+
+[data-theme="dark"] .cart-sidebar {
+    background: #16213e;
+}
+
+[data-theme="dark"] .cart-header {
+    border-bottom-color: #2a2a4a;
+}
+
+[data-theme="dark"] .cart-item {
+    border-bottom-color: #2a2a4a;
+}
+
+[data-theme="dark"] .cart-footer {
+    border-top-color: #2a2a4a;
+}
+
+[data-theme="dark"] .cart-item-qty button {
+    background: #2a2a4a;
+    color: #f0f0f0;
+}
+
+[data-theme="dark"] .footer {
+    background: #0f0f23;
+}
+
+[data-theme="dark"] .toast {
+    background: #f0f0f0;
+    color: #1a1a2e;
+}

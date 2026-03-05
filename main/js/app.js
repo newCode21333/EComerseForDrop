@@ -489,6 +489,29 @@ window.addEventListener('scroll', () => {
     });
 });
 
+// ===== Dark Mode =====
+const themeToggle = document.getElementById('themeToggle');
+const iconSun = themeToggle.querySelector('.icon-sun');
+const iconMoon = themeToggle.querySelector('.icon-moon');
+
+function setTheme(dark) {
+    document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
+    iconSun.style.display = dark ? 'none' : 'block';
+    iconMoon.style.display = dark ? 'block' : 'none';
+    localStorage.setItem('theme', dark ? 'dark' : 'light');
+}
+
+// Load saved theme or detect system preference
+const savedTheme = localStorage.getItem('theme');
+if (savedTheme === 'dark' || (!savedTheme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+    setTheme(true);
+}
+
+themeToggle.addEventListener('click', () => {
+    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+    setTheme(!isDark);
+});
+
 // ===== Init =====
 renderProducts();
 updateCartUI();
