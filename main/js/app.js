@@ -1,138 +1,5 @@
-// ===== Product Data =====
-const products = [
-    {
-        id: 1,
-        name: "Audifonos Inalambricos Pro",
-        category: "electronica",
-        price: 79.99,
-        oldPrice: 129.99,
-        image: "🎧",
-        rating: 4.8,
-        reviews: 234,
-        badge: "-38%"
-    },
-    {
-        id: 2,
-        name: "Smartwatch Deportivo",
-        category: "electronica",
-        price: 149.99,
-        oldPrice: 199.99,
-        image: "⌚",
-        rating: 4.6,
-        reviews: 189,
-        badge: "-25%"
-    },
-    {
-        id: 3,
-        name: "Camiseta Premium Algodon",
-        category: "ropa",
-        price: 29.99,
-        oldPrice: null,
-        image: "👕",
-        rating: 4.5,
-        reviews: 156,
-        badge: "new"
-    },
-    {
-        id: 4,
-        name: "Lampara LED Moderna",
-        category: "hogar",
-        price: 45.99,
-        oldPrice: 69.99,
-        image: "💡",
-        rating: 4.7,
-        reviews: 98,
-        badge: "-34%"
-    },
-    {
-        id: 5,
-        name: "Zapatillas Running Ultra",
-        category: "deportes",
-        price: 89.99,
-        oldPrice: 119.99,
-        image: "👟",
-        rating: 4.9,
-        reviews: 312,
-        badge: "-25%"
-    },
-    {
-        id: 6,
-        name: "Mochila Urban Style",
-        category: "accesorios",
-        price: 39.99,
-        oldPrice: null,
-        image: "🎒",
-        rating: 4.4,
-        reviews: 87,
-        badge: "new"
-    },
-    {
-        id: 7,
-        name: "Parlante Bluetooth Mini",
-        category: "electronica",
-        price: 34.99,
-        oldPrice: 54.99,
-        image: "🔊",
-        rating: 4.3,
-        reviews: 145,
-        badge: "-36%"
-    },
-    {
-        id: 8,
-        name: "Chaqueta Impermeable",
-        category: "ropa",
-        price: 69.99,
-        oldPrice: 99.99,
-        image: "🧥",
-        rating: 4.6,
-        reviews: 203,
-        badge: "-30%"
-    },
-    {
-        id: 9,
-        name: "Set de Yoga Completo",
-        category: "deportes",
-        price: 55.99,
-        oldPrice: null,
-        image: "🧘",
-        rating: 4.7,
-        reviews: 76,
-        badge: "new"
-    },
-    {
-        id: 10,
-        name: "Organizador de Escritorio",
-        category: "hogar",
-        price: 24.99,
-        oldPrice: 34.99,
-        image: "📦",
-        rating: 4.2,
-        reviews: 64,
-        badge: "-29%"
-    },
-    {
-        id: 11,
-        name: "Gafas de Sol Polarizadas",
-        category: "accesorios",
-        price: 49.99,
-        oldPrice: 79.99,
-        image: "🕶️",
-        rating: 4.5,
-        reviews: 178,
-        badge: "-37%"
-    },
-    {
-        id: 12,
-        name: "Teclado Mecanico RGB",
-        category: "electronica",
-        price: 64.99,
-        oldPrice: 89.99,
-        image: "⌨️",
-        rating: 4.8,
-        reviews: 267,
-        badge: "-28%"
-    }
-];
+// ===== Product Data (loaded from API) =====
+let products = [];
 
 // ===== State =====
 let cart = JSON.parse(localStorage.getItem('cart')) || [];
@@ -140,6 +7,52 @@ let wishlist = JSON.parse(localStorage.getItem('wishlist')) || [];
 let currentCategory = 'todos';
 let currentSort = 'default';
 let searchQuery = '';
+let productsLoaded = false;
+
+// ===== Load Products from API =====
+async function loadProducts() {
+    try {
+        const params = {};
+        if (currentCategory !== 'todos') params.category = currentCategory;
+        if (searchQuery) params.search = searchQuery;
+        if (currentSort !== 'default') params.sort = currentSort;
+
+        const data = await fetch('/api/products?' + new URLSearchParams(params));
+        const json = await data.json();
+
+        if (json.success) {
+            // Map DB fields to frontend fields
+            products = json.products.map(p => ({
+                id: p.id,
+                name: p.name,
+                category: p.category,
+                price: p.price,
+                oldPrice: p.old_price,
+                image: p.image || '📦',
+                rating: p.rating,
+                reviews: p.reviews,
+                badge: p.badge,
+                stock: p.stock,
+                stockStatus: p.stock_status,
+                sku: p.sku,
+                description: p.description,
+                sourceUrl: p.source_url,
+                sourceName: p.source_name
+            }));
+            productsLoaded = true;
+            renderProducts();
+        }
+    } catch (err) {
+        console.error('Error loading products:', err);
+        // Show error in grid
+        productsGrid.innerHTML = `
+            <div style="grid-column: 1/-1; text-align: center; padding: 60px 20px; color: var(--gray);">
+                <p style="font-size: 1.2rem;">Error al cargar productos</p>
+                <p style="font-size: 0.9rem; margin-top: 8px;">Verifica que el servidor este ejecutandose</p>
+            </div>
+        `;
+    }
+}
 
 // ===== DOM Elements =====
 const productsGrid = document.getElementById('productsGrid');
@@ -162,39 +75,8 @@ const checkoutBtn = document.getElementById('checkoutBtn');
 
 // ===== Render Products =====
 function getFilteredProducts() {
-    let filtered = [...products];
-
-    // Category filter
-    if (currentCategory !== 'todos') {
-        filtered = filtered.filter(p => p.category === currentCategory);
-    }
-
-    // Search filter
-    if (searchQuery) {
-        const query = searchQuery.toLowerCase();
-        filtered = filtered.filter(p =>
-            p.name.toLowerCase().includes(query) ||
-            p.category.toLowerCase().includes(query)
-        );
-    }
-
-    // Sort
-    switch (currentSort) {
-        case 'price-asc':
-            filtered.sort((a, b) => a.price - b.price);
-            break;
-        case 'price-desc':
-            filtered.sort((a, b) => b.price - a.price);
-            break;
-        case 'name':
-            filtered.sort((a, b) => a.name.localeCompare(b.name));
-            break;
-        case 'rating':
-            filtered.sort((a, b) => b.rating - a.rating);
-            break;
-    }
-
-    return filtered;
+    // Products already filtered by API, just return them
+    return products;
 }
 
 function renderStars(rating) {
@@ -202,6 +84,16 @@ function renderStars(rating) {
     const half = rating % 1 >= 0.5 ? 1 : 0;
     const empty = 5 - full - half;
     return '★'.repeat(full) + (half ? '½' : '') + '☆'.repeat(empty);
+}
+
+function getStockLabel(product) {
+    if (product.stockStatus === 'en_stock') {
+        return `<span class="stock-badge stock-available">En Stock (${product.stock})</span>`;
+    } else if (product.stockStatus === 'a_pedido') {
+        return '<span class="stock-badge stock-order">A Pedido</span>';
+    } else {
+        return '<span class="stock-badge stock-out">Agotado</span>';
+    }
 }
 
 function renderProducts() {
@@ -221,6 +113,8 @@ function renderProducts() {
         const isWished = wishlist.includes(product.id);
         const badgeClass = product.badge === 'new' ? 'new' : '';
         const badgeText = product.badge === 'new' ? 'Nuevo' : product.badge;
+        const isDisabled = product.stockStatus === 'agotado';
+        const btnText = isDisabled ? 'Agotado' : (product.stockStatus === 'a_pedido' ? 'Pedir' : 'Agregar');
 
         return `
             <div class="product-card">
@@ -240,12 +134,13 @@ function renderProducts() {
                         <span class="stars">${renderStars(product.rating)}</span>
                         <span class="rating-count">(${product.reviews})</span>
                     </div>
+                    ${getStockLabel(product)}
                     <div class="product-footer">
                         <div class="product-price">
                             <span class="price-current">$${product.price.toFixed(2)}</span>
                             ${product.oldPrice ? `<span class="price-old">$${product.oldPrice.toFixed(2)}</span>` : ''}
                         </div>
-                        <button class="add-to-cart" onclick="addToCart(${product.id})">Agregar</button>
+                        <button class="add-to-cart" onclick="addToCart(${product.id})" ${isDisabled ? 'disabled style="opacity:0.5;cursor:not-allowed;"' : ''}>${btnText}</button>
                     </div>
                 </div>
             </div>
@@ -256,6 +151,8 @@ function renderProducts() {
 // ===== Cart Functions =====
 function addToCart(productId) {
     const product = products.find(p => p.id === productId);
+    if (!product || product.stockStatus === 'agotado') return;
+
     const existing = cart.find(item => item.id === productId);
 
     if (existing) {
@@ -381,20 +278,22 @@ document.querySelectorAll('.category-card').forEach(card => {
         document.querySelectorAll('.category-card').forEach(c => c.classList.remove('active'));
         card.classList.add('active');
         currentCategory = card.dataset.category;
-        renderProducts();
+        loadProducts();
     });
 });
 
 // ===== Search =====
+let searchTimeout;
 searchInput.addEventListener('input', (e) => {
     searchQuery = e.target.value;
-    renderProducts();
+    clearTimeout(searchTimeout);
+    searchTimeout = setTimeout(() => loadProducts(), 300);
 });
 
 // ===== Sort =====
 sortSelect.addEventListener('change', (e) => {
     currentSort = e.target.value;
-    renderProducts();
+    loadProducts();
 });
 
 // ===== Toast =====
@@ -513,5 +412,5 @@ themeToggle.addEventListener('click', () => {
 });
 
 // ===== Init =====
-renderProducts();
+loadProducts();
 updateCartUI();

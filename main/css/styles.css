@@ -552,6 +552,30 @@ button {
     color: var(--light-gray);
 }
 
+.stock-badge {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 12px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    margin-bottom: 8px;
+}
+
+.stock-available {
+    background: rgba(0, 184, 148, 0.12);
+    color: #00b894;
+}
+
+.stock-order {
+    background: rgba(253, 203, 110, 0.2);
+    color: #e17055;
+}
+
+.stock-out {
+    background: rgba(225, 112, 85, 0.12);
+    color: #d63031;
+}
+
 .product-footer {
     display: flex;
     align-items: center;

@@ -137,6 +137,50 @@ const USERS_API = {
     }
 };
 
+// ===== PRODUCTS API =====
+const PRODUCTS_API = {
+    async getAll(params = {}) {
+        const query = new URLSearchParams(params).toString();
+        const data = await API.get('/products' + (query ? '?' + query : ''));
+        return data.products;
+    },
+
+    async getById(id) {
+        const data = await API.get('/products/' + id);
+        return data.product;
+    },
+
+    async getCategories() {
+        const data = await API.get('/products/categories/list');
+        return data.categories;
+    },
+
+    async create(product) {
+        return API.post('/products', product);
+    },
+
+    async update(id, updates) {
+        return API.put('/products/' + id, updates);
+    },
+
+    async remove(id) {
+        return API.del('/products/' + id);
+    },
+
+    async bulkStock(updates) {
+        return API.post('/products/bulk-stock', { updates });
+    },
+
+    async bulkImport(products) {
+        return API.post('/products/bulk-import', { products });
+    },
+
+    async getStockLog(productId) {
+        const data = await API.get('/products/' + productId + '/stock-log');
+        return data.logs;
+    }
+};
+
 // ===== CHAT API =====
 const CHAT_API = {
     async getMyChats() {

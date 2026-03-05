@@ -81,6 +81,46 @@ function initDb() {
         CREATE INDEX IF NOT EXISTS idx_chats_client ON chats(client_id);
         CREATE INDEX IF NOT EXISTS idx_chats_employee ON chats(employee_id);
         CREATE INDEX IF NOT EXISTS idx_messages_chat ON messages(chat_id);
+
+        -- Products table
+        CREATE TABLE IF NOT EXISTS products (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            category TEXT NOT NULL,
+            price REAL NOT NULL,
+            source_price REAL,
+            markup REAL DEFAULT 1.10,
+            old_price REAL,
+            image TEXT DEFAULT '📦',
+            rating REAL DEFAULT 0,
+            reviews INTEGER DEFAULT 0,
+            badge TEXT,
+            stock INTEGER DEFAULT 0,
+            stock_status TEXT DEFAULT 'a_pedido' CHECK(stock_status IN ('en_stock', 'a_pedido', 'agotado')),
+            source_url TEXT,
+            source_name TEXT,
+            sku TEXT UNIQUE,
+            description TEXT,
+            active INTEGER DEFAULT 1,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_products_category ON products(category);
+        CREATE INDEX IF NOT EXISTS idx_products_sku ON products(sku);
+        CREATE INDEX IF NOT EXISTS idx_products_active ON products(active);
+
+        -- Stock history log
+        CREATE TABLE IF NOT EXISTS stock_log (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            product_id INTEGER NOT NULL,
+            previous_stock INTEGER,
+            new_stock INTEGER,
+            change_type TEXT CHECK(change_type IN ('manual', 'import', 'sale', 'adjustment')),
+            notes TEXT,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE
+        );
     `);
 
     // Seed default users if empty
@@ -100,6 +140,33 @@ function initDb() {
 
         seed();
         console.log('Base de datos inicializada con usuarios por defecto');
+    }
+
+    // Seed default products if empty
+    const productCount = db.prepare('SELECT COUNT(*) as c FROM products').get().c;
+    if (productCount === 0) {
+        const insertProduct = db.prepare(`
+            INSERT INTO products (name, category, price, source_price, old_price, image, rating, reviews, badge, stock, stock_status, sku, description)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `);
+
+        const seedProducts = db.transaction(() => {
+            insertProduct.run('Audifonos Inalambricos Pro', 'electronica', 79.99, 72.72, 129.99, '🎧', 4.8, 234, '-38%', 25, 'en_stock', 'ELEC-001', 'Audifonos bluetooth con cancelacion de ruido activa');
+            insertProduct.run('Smartwatch Deportivo', 'electronica', 149.99, 136.35, 199.99, '⌚', 4.6, 189, '-25%', 12, 'en_stock', 'ELEC-002', 'Reloj inteligente resistente al agua con GPS');
+            insertProduct.run('Camiseta Premium Algodon', 'ropa', 29.99, 27.26, null, '👕', 4.5, 156, 'new', 50, 'en_stock', 'ROPA-001', 'Camiseta 100% algodon organico');
+            insertProduct.run('Lampara LED Moderna', 'hogar', 45.99, 41.81, 69.99, '💡', 4.7, 98, '-34%', 8, 'en_stock', 'HOGR-001', 'Lampara regulable con control remoto');
+            insertProduct.run('Zapatillas Running Ultra', 'deportes', 89.99, 81.81, 119.99, '👟', 4.9, 312, '-25%', 0, 'a_pedido', 'DEPO-001', 'Zapatillas ultra ligeras para correr');
+            insertProduct.run('Mochila Urban Style', 'accesorios', 39.99, 36.35, null, '🎒', 4.4, 87, 'new', 30, 'en_stock', 'ACCE-001', 'Mochila resistente al agua con puerto USB');
+            insertProduct.run('Parlante Bluetooth Mini', 'electronica', 34.99, 31.81, 54.99, '🔊', 4.3, 145, '-36%', 18, 'en_stock', 'ELEC-003', 'Parlante portatil 10W con 12h de bateria');
+            insertProduct.run('Chaqueta Impermeable', 'ropa', 69.99, 63.63, 99.99, '🧥', 4.6, 203, '-30%', 0, 'a_pedido', 'ROPA-002', 'Chaqueta impermeable y cortavientos');
+            insertProduct.run('Set de Yoga Completo', 'deportes', 55.99, 50.90, null, '🧘', 4.7, 76, 'new', 15, 'en_stock', 'DEPO-002', 'Mat + bloques + correa + bolsa de transporte');
+            insertProduct.run('Organizador de Escritorio', 'hogar', 24.99, 22.72, 34.99, '📦', 4.2, 64, '-29%', 40, 'en_stock', 'HOGR-002', 'Organizador de bambu con 5 compartimentos');
+            insertProduct.run('Gafas de Sol Polarizadas', 'accesorios', 49.99, 45.45, 79.99, '🕶️', 4.5, 178, '-37%', 0, 'agotado', 'ACCE-002', 'Proteccion UV400 con montura de titanio');
+            insertProduct.run('Teclado Mecanico RGB', 'electronica', 64.99, 59.08, 89.99, '⌨️', 4.8, 267, '-28%', 7, 'en_stock', 'ELEC-004', 'Teclado mecanico switches Cherry MX');
+        });
+
+        seedProducts();
+        console.log('Productos por defecto insertados');
     }
 }
 
