@@ -279,14 +279,9 @@
         </div>
     </div>
 
-    <script src="js/auth.js"></script>
+    <script src="js/api.js"></script>
     <script>
-        // Auth check
-        const session = AUTH.requireAuth(['admin']);
-        if (!session) throw new Error('No auth');
-
-        document.getElementById('headerName').textContent = session.name;
-        document.getElementById('headerAvatar').textContent = session.avatar;
+        let session = null;
 
         // Theme
         const themeToggle = document.getElementById('themeToggle');
@@ -330,107 +325,114 @@
         }
 
         // Render Data
-        function getUserName(id) {
-            const users = AUTH.getUsers();
-            const u = users.find(u => u.id === id);
-            return u ? u.name : 'Desconocido';
+        async function refreshData() {
+            try {
+                const [stats, employees, clients, chatsData] = await Promise.all([
+                    USERS_API.getStats(),
+                    USERS_API.getEmployees(),
+                    USERS_API.getClients(),
+                    CHAT_API.getMyChats()
+                ]);
+
+                // Stats
+                document.getElementById('statTotal').textContent = stats.total;
+                document.getElementById('statEmployees').textContent = stats.employees;
+                document.getElementById('statClients').textContent = stats.clients;
+                document.getElementById('statChats').textContent = stats.activeChats;
+
+                // Recent users - combine all
+                const allUsers = [...employees, ...clients].sort((a, b) => new Date(b.created_at) - new Date(a.created_at)).slice(0, 5);
+                document.getElementById('recentUsers').innerHTML = allUsers.map(u => `
+                    <tr>
+                        <td><div class="table-user"><span class="table-user-avatar">${u.avatar}</span><div class="table-user-info"><div class="name">${u.name}</div><div class="email">${u.email}</div></div></div></td>
+                        <td><span class="badge badge-${u.role}">${u.role}</span></td>
+                        <td>${new Date(u.created_at).toLocaleDateString()}</td>
+                    </tr>
+                `).join('');
+
+                // Employees table
+                document.getElementById('employeesTable').innerHTML = employees.map(e => `
+                    <tr>
+                        <td><div class="table-user"><span class="table-user-avatar">${e.avatar}</span><div class="table-user-info"><div class="name">${e.name}</div><div class="email">${e.email}</div></div></div></td>
+                        <td>${e.department || '-'}</td>
+                        <td><span class="badge badge-${e.status || 'offline'}">${e.status || 'offline'}</span></td>
+                        <td>${new Date(e.created_at).toLocaleDateString()}</td>
+                        <td class="actions-cell">
+                            <button class="btn btn-danger btn-small" onclick="deleteUser(${e.id})">Eliminar</button>
+                        </td>
+                    </tr>
+                `).join('');
+
+                // Clients table
+                document.getElementById('clientsTable').innerHTML = clients.length === 0
+                    ? '<tr><td colspan="3" style="text-align:center;color:var(--gray);padding:32px;">No hay clientes registrados</td></tr>'
+                    : clients.map(c => `
+                    <tr>
+                        <td><div class="table-user"><span class="table-user-avatar">${c.avatar}</span><div class="table-user-info"><div class="name">${c.name}</div><div class="email">${c.email}</div></div></div></td>
+                        <td>${new Date(c.created_at).toLocaleDateString()}</td>
+                        <td class="actions-cell">
+                            <button class="btn btn-danger btn-small" onclick="deleteUser(${c.id})">Eliminar</button>
+                        </td>
+                    </tr>
+                `).join('');
+
+                // Chats table
+                const chats = chatsData;
+                document.getElementById('chatsTable').innerHTML = chats.length === 0
+                    ? '<tr><td colspan="5" style="text-align:center;color:var(--gray);padding:32px;">No hay chats registrados</td></tr>'
+                    : chats.map(c => `
+                    <tr>
+                        <td>${c.client_name}</td>
+                        <td>${c.employee_name}</td>
+                        <td>${c.message_count}</td>
+                        <td><span class="badge badge-${c.status === 'open' ? 'online' : 'offline'}">${c.status === 'open' ? 'Abierto' : 'Cerrado'}</span></td>
+                        <td>${new Date(c.created_at).toLocaleDateString()}</td>
+                    </tr>
+                `).join('');
+            } catch (err) {
+                console.error('Error loading data:', err);
+            }
         }
 
-        function refreshData() {
-            const users = AUTH.getUsers();
-            const employees = users.filter(u => u.role === 'employee');
-            const clients = users.filter(u => u.role === 'client');
-            const chats = CHAT.getChats();
-            const activeChats = chats.filter(c => c.status === 'open');
-
-            // Stats
-            document.getElementById('statTotal').textContent = users.length;
-            document.getElementById('statEmployees').textContent = employees.length;
-            document.getElementById('statClients').textContent = clients.length;
-            document.getElementById('statChats').textContent = activeChats.length;
-
-            // Recent users
-            const recent = [...users].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)).slice(0, 5);
-            document.getElementById('recentUsers').innerHTML = recent.map(u => `
-                <tr>
-                    <td><div class="table-user"><span class="table-user-avatar">${u.avatar}</span><div class="table-user-info"><div class="name">${u.name}</div><div class="email">${u.email}</div></div></div></td>
-                    <td><span class="badge badge-${u.role}">${u.role}</span></td>
-                    <td>${u.createdAt}</td>
-                </tr>
-            `).join('');
-
-            // Employees table
-            document.getElementById('employeesTable').innerHTML = employees.map(e => `
-                <tr>
-                    <td><div class="table-user"><span class="table-user-avatar">${e.avatar}</span><div class="table-user-info"><div class="name">${e.name}</div><div class="email">${e.email}</div></div></div></td>
-                    <td>${e.department || '-'}</td>
-                    <td><span class="badge badge-${e.status || 'offline'}">${e.status || 'offline'}</span></td>
-                    <td>${e.createdAt}</td>
-                    <td class="actions-cell">
-                        <button class="btn btn-danger btn-small" onclick="deleteUser(${e.id})">Eliminar</button>
-                    </td>
-                </tr>
-            `).join('');
-
-            // Clients table
-            document.getElementById('clientsTable').innerHTML = clients.length === 0
-                ? '<tr><td colspan="3" style="text-align:center;color:var(--gray);padding:32px;">No hay clientes registrados</td></tr>'
-                : clients.map(c => `
-                <tr>
-                    <td><div class="table-user"><span class="table-user-avatar">${c.avatar}</span><div class="table-user-info"><div class="name">${c.name}</div><div class="email">${c.email}</div></div></div></td>
-                    <td>${c.createdAt}</td>
-                    <td class="actions-cell">
-                        <button class="btn btn-danger btn-small" onclick="deleteUser(${c.id})">Eliminar</button>
-                    </td>
-                </tr>
-            `).join('');
-
-            // Chats table
-            document.getElementById('chatsTable').innerHTML = chats.length === 0
-                ? '<tr><td colspan="5" style="text-align:center;color:var(--gray);padding:32px;">No hay chats registrados</td></tr>'
-                : chats.map(c => `
-                <tr>
-                    <td>${getUserName(c.clientId)}</td>
-                    <td>${getUserName(c.employeeId)}</td>
-                    <td>${c.messages.length}</td>
-                    <td><span class="badge badge-${c.status === 'open' ? 'online' : 'offline'}">${c.status === 'open' ? 'Abierto' : 'Cerrado'}</span></td>
-                    <td>${new Date(c.createdAt).toLocaleDateString()}</td>
-                </tr>
-            `).join('');
-        }
-
-        function deleteUser(id) {
+        async function deleteUser(id) {
             if (confirm('Estas seguro de eliminar este usuario?')) {
-                AUTH.deleteUser(id);
-                refreshData();
+                try {
+                    await USERS_API.deleteUser(id);
+                    refreshData();
+                } catch (err) {
+                    alert(err.message);
+                }
             }
         }
 
         // Add Employee
-        document.getElementById('addEmployeeForm').addEventListener('submit', (e) => {
+        document.getElementById('addEmployeeForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             const name = document.getElementById('empName').value;
             const email = document.getElementById('empEmail').value;
             const password = document.getElementById('empPassword').value;
             const dept = document.getElementById('empDept').value;
 
-            const result = AUTH.register(name, email, password, 'employee');
-            if (!result.success) {
-                const alert = document.getElementById('empAlert');
-                alert.textContent = result.message;
-                alert.classList.add('show');
-                return;
+            try {
+                await USERS_API.createEmployee(name, email, password, dept);
+                closeModal('addEmployee');
+                document.getElementById('addEmployeeForm').reset();
+                refreshData();
+            } catch (err) {
+                const alertEl = document.getElementById('empAlert');
+                alertEl.textContent = err.message;
+                alertEl.classList.add('show');
             }
-
-            // Set department
-            AUTH.updateUser(result.user.id, { department: dept });
-            closeModal('addEmployee');
-            document.getElementById('addEmployeeForm').reset();
-            refreshData();
         });
 
         // Init
-        refreshData();
+        (async () => {
+            session = await AUTH_API.requireAuth(['admin']);
+            if (!session) return;
+            document.getElementById('headerName').textContent = session.name;
+            document.getElementById('headerAvatar').textContent = session.avatar;
+            refreshData();
+        })();
     </script>
 </body>
 </html>

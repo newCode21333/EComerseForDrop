@@ -1,0 +1,16 @@
+{
+  "name": "dropshop",
+  "version": "1.0.0",
+  "description": "DropShop - Tienda Online con sistema de soporte",
+  "main": "server/index.js",
+  "scripts": {
+    "start": "node server/index.js",
+    "dev": "node server/index.js"
+  },
+  "dependencies": {
+    "better-sqlite3": "^11.0.0",
+    "cookie-parser": "^1.4.6",
+    "cors": "^2.8.5",
+    "express": "^4.18.2"
+  }
+}

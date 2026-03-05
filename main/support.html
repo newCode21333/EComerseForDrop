@@ -326,7 +326,7 @@
             </div>
             <a href="index.html" class="btn btn-ghost btn-small">Tienda</a>
             <button class="btn btn-ghost btn-small" id="adminLink" style="display:none" onclick="location.href='admin.html'">Admin</button>
-            <button class="btn btn-ghost btn-small" onclick="AUTH.logout()">Salir</button>
+            <button class="btn btn-ghost btn-small" onclick="AUTH_API.logout()">Salir</button>
         </div>
     </header>
 
@@ -381,23 +381,10 @@
         </div>
     </div>
 
-    <script src="js/auth.js"></script>
+    <script src="js/api.js"></script>
     <script>
-        // Auth check - allow clients, employees, and admins
-        const session = AUTH.requireAuth(['client', 'employee', 'admin']);
-        if (!session) throw new Error('No auth');
-
-        const isEmployee = session.role === 'employee' || session.role === 'admin';
-
-        document.getElementById('headerName').textContent = session.name;
-        document.getElementById('headerAvatar').textContent = session.avatar;
-        document.getElementById('headerRole').textContent =
-            session.role === 'admin' ? 'Administrador' :
-            session.role === 'employee' ? 'Empleado' : 'Cliente';
-
-        if (session.role === 'admin') {
-            document.getElementById('adminLink').style.display = '';
-        }
+        let session = null;
+        let isEmployee = false;
 
         // Theme
         const themeToggle = document.getElementById('themeToggle');
@@ -422,6 +409,7 @@
         // State
         let currentChatId = null;
         let currentContactId = null;
+        let currentContactInfo = null;
         let chatPollInterval = null;
 
         const contactsList = document.getElementById('contactsList');
@@ -435,177 +423,155 @@
         const backBtn = document.getElementById('backBtn');
 
         // Load contacts
-        function loadContacts() {
+        async function loadContacts() {
             const search = document.getElementById('contactsSearch').value.toLowerCase();
 
             if (isEmployee) {
-                // Employees see their chats with clients
                 document.getElementById('contactsTitle').textContent = 'Mis Chats';
-                const chats = CHAT.getUserChats(session.id);
-                const users = AUTH.getUsers();
+                try {
+                    const chats = await CHAT_API.getMyChats();
+                    let contacts = chats.map(chat => {
+                        const isClient = chat.client_id === session.id;
+                        return {
+                            name: isClient ? chat.employee_name : chat.client_name,
+                            avatar: isClient ? chat.employee_avatar : chat.client_avatar,
+                            contactId: isClient ? chat.employee_id : chat.client_id,
+                            chatId: chat.id,
+                            lastMsg: chat.last_message,
+                            status: chat.status
+                        };
+                    });
 
-                let contacts = chats.map(chat => {
-                    const otherId = chat.clientId === session.id ? chat.employeeId : chat.clientId;
-                    const user = users.find(u => u.id === otherId);
-                    if (!user) return null;
-                    const lastMsg = chat.messages.length > 0 ? chat.messages[chat.messages.length - 1] : null;
-                    return { user, chatId: chat.id, lastMsg, status: chat.status };
-                }).filter(Boolean);
+                    if (search) {
+                        contacts = contacts.filter(c => c.name.toLowerCase().includes(search));
+                    }
 
-                if (search) {
-                    contacts = contacts.filter(c => c.user.name.toLowerCase().includes(search));
+                    contactsList.innerHTML = contacts.length === 0
+                        ? '<div style="padding:32px;text-align:center;color:var(--gray);font-size:0.9rem;">No hay chats activos</div>'
+                        : contacts.map(c => `
+                            <button class="contact-item ${currentChatId === c.chatId ? 'active' : ''}" onclick="openChat(${c.chatId}, ${c.contactId}, '${c.name}', '${c.avatar}')">
+                                <div class="contact-avatar">${c.avatar}<span class="contact-status-dot ${c.status === 'open' ? 'online' : 'offline'}"></span></div>
+                                <div class="contact-info">
+                                    <div class="contact-name">${c.name}</div>
+                                    <div class="contact-last-msg">${c.lastMsg || 'Sin mensajes'}</div>
+                                </div>
+                            </button>
+                        `).join('');
+                } catch (err) {
+                    console.error('Error loading chats:', err);
                 }
-
-                contactsList.innerHTML = contacts.length === 0
-                    ? '<div style="padding:32px;text-align:center;color:var(--gray);font-size:0.9rem;">No hay chats activos</div>'
-                    : contacts.map(c => `
-                        <button class="contact-item ${currentChatId === c.chatId ? 'active' : ''}" onclick="openChat(${c.chatId}, ${c.user.id})">
-                            <div class="contact-avatar">${c.user.avatar}<span class="contact-status-dot ${c.status === 'open' ? 'online' : 'offline'}"></span></div>
-                            <div class="contact-info">
-                                <div class="contact-name">${c.user.name}</div>
-                                <div class="contact-last-msg">${c.lastMsg ? c.lastMsg.text : 'Sin mensajes'}</div>
-                            </div>
-                        </button>
-                    `).join('');
             } else {
-                // Clients see available employees
+                // Client sees employees
                 document.getElementById('contactsTitle').textContent = 'Asesores';
                 document.getElementById('employeeListHeader').style.display = 'block';
-                let employees = AUTH.getEmployees();
+                try {
+                    let employees = await USERS_API.getEmployees();
+                    if (search) {
+                        employees = employees.filter(e =>
+                            e.name.toLowerCase().includes(search) ||
+                            (e.department || '').toLowerCase().includes(search)
+                        );
+                    }
 
-                if (search) {
-                    employees = employees.filter(e => e.name.toLowerCase().includes(search) || (e.department || '').toLowerCase().includes(search));
-                }
-
-                // Also show existing chats
-                const myChats = CHAT.getUserChats(session.id);
-                const users = AUTH.getUsers();
-
-                contactsList.innerHTML = employees.map(emp => {
-                    const existingChat = myChats.find(c => c.employeeId === emp.id && c.status === 'open');
-                    const lastMsg = existingChat && existingChat.messages.length > 0
-                        ? existingChat.messages[existingChat.messages.length - 1]
-                        : null;
-                    return `
-                        <button class="contact-item ${currentContactId === emp.id ? 'active' : ''}" onclick="startOrOpenChat(${emp.id})">
+                    contactsList.innerHTML = employees.map(emp => `
+                        <button class="contact-item ${currentContactId === emp.id ? 'active' : ''}" onclick="startOrOpenChat(${emp.id}, '${emp.name}', '${emp.avatar}', '${emp.department || 'General'}')">
                             <div class="contact-avatar">${emp.avatar}<span class="contact-status-dot ${emp.status || 'offline'}"></span></div>
                             <div class="contact-info">
                                 <div class="contact-name">${emp.name}</div>
                                 <div class="contact-dept">${emp.department || 'General'}</div>
-                                ${lastMsg ? `<div class="contact-last-msg">${lastMsg.text}</div>` : ''}
                             </div>
                         </button>
-                    `;
-                }).join('');
+                    `).join('');
+                } catch (err) {
+                    console.error('Error loading employees:', err);
+                }
             }
         }
 
-        // Start or open chat (client perspective)
-        function startOrOpenChat(employeeId) {
+        // Start or open chat (client)
+        async function startOrOpenChat(employeeId, name, avatar, dept) {
             currentContactId = employeeId;
-            const chat = CHAT.startChat(session.id, employeeId);
-            openChat(chat.id, employeeId);
+            currentContactInfo = { name, avatar, department: dept };
+            try {
+                const result = await CHAT_API.startChat(employeeId);
+                openChat(result.chat.id, employeeId, name, avatar);
+            } catch (err) {
+                alert(err.message);
+            }
         }
 
         // Open chat
-        function openChat(chatId, contactId) {
+        function openChat(chatId, contactId, contactName, contactAvatar) {
             currentChatId = chatId;
             currentContactId = contactId;
-
-            const users = AUTH.getUsers();
-            const contact = users.find(u => u.id === contactId);
 
             noChat.style.display = 'none';
             activeChat.style.display = 'flex';
 
-            document.getElementById('chatAvatar').textContent = contact ? contact.avatar : '👤';
-            document.getElementById('chatName').textContent = contact ? contact.name : 'Desconocido';
-            document.getElementById('chatStatus').textContent = contact
-                ? (contact.department ? contact.department + ' - ' : '') + (contact.status || (contact.role === 'client' ? 'Cliente' : ''))
-                : '';
+            document.getElementById('chatAvatar').textContent = contactAvatar || '👤';
+            document.getElementById('chatName').textContent = contactName || 'Desconocido';
+            document.getElementById('chatStatus').textContent = '';
 
-            // Show close button for employees
             closeChatBtn.style.display = isEmployee ? '' : 'none';
             quickReplies.style.display = isEmployee ? 'flex' : 'none';
 
             loadMessages();
             loadContacts();
 
-            // Poll for new messages
             clearInterval(chatPollInterval);
             chatPollInterval = setInterval(loadMessages, 2000);
         }
 
         // Load messages
-        function loadMessages() {
+        async function loadMessages() {
             if (!currentChatId) return;
-            const messages = CHAT.getChatMessages(currentChatId);
+            try {
+                const data = await CHAT_API.getMessages(currentChatId);
+                const messages = data.messages;
 
-            if (messages.length === 0) {
-                chatMessages.innerHTML = `
-                    <div class="chat-empty">
-                        <div class="chat-empty-icon">👋</div>
-                        <p>Inicia la conversacion</p>
-                        <small>Escribe un mensaje para comenzar</small>
-                    </div>
-                `;
-                return;
+                if (messages.length === 0) {
+                    chatMessages.innerHTML = `
+                        <div class="chat-empty">
+                            <div class="chat-empty-icon">👋</div>
+                            <p>Inicia la conversacion</p>
+                            <small>Escribe un mensaje para comenzar</small>
+                        </div>
+                    `;
+                    return;
+                }
+
+                chatMessages.innerHTML = messages.map(msg => {
+                    const isMine = msg.sender_id === session.id;
+                    const time = new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                    return `
+                        <div class="message ${isMine ? 'message-sent' : 'message-received'}">
+                            ${msg.text}
+                            <span class="message-time">${msg.sender_name} · ${time}</span>
+                        </div>
+                    `;
+                }).join('');
+
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+            } catch (err) {
+                console.error('Error loading messages:', err);
             }
-
-            const users = AUTH.getUsers();
-            chatMessages.innerHTML = messages.map(msg => {
-                const isMine = msg.senderId === session.id;
-                const sender = users.find(u => u.id === msg.senderId);
-                const time = new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                return `
-                    <div class="message ${isMine ? 'message-sent' : 'message-received'}">
-                        ${msg.text}
-                        <span class="message-time">${sender ? sender.name : ''} · ${time}</span>
-                    </div>
-                `;
-            }).join('');
-
-            chatMessages.scrollTop = chatMessages.scrollHeight;
         }
 
         // Send message
-        function sendMessage() {
+        async function sendMessage() {
             const text = chatInput.value.trim();
             if (!text || !currentChatId) return;
 
-            CHAT.sendMessage(currentChatId, session.id, text);
             chatInput.value = '';
             chatInput.style.height = 'auto';
-            loadMessages();
-            loadContacts();
 
-            // Simulate employee auto-reply for clients
-            if (!isEmployee) {
-                simulateReply();
-            }
-        }
-
-        // Simulate employee reply
-        function simulateReply() {
-            const replies = [
-                "Hola! Gracias por contactarnos. En que puedo ayudarte?",
-                "Entiendo tu consulta. Dejame revisar eso por ti.",
-                "Tu pedido esta siendo procesado. Te notificaremos cuando sea enviado.",
-                "Claro! Puedo ayudarte con eso. Dame un momento.",
-                "Gracias por tu paciencia. Ya tengo la informacion que necesitas.",
-                "Si necesitas algo mas, no dudes en preguntar!"
-            ];
-
-            const chats = CHAT.getChats();
-            const chat = chats.find(c => c.id === currentChatId);
-            if (!chat || chat.messages.length > 1) return; // Only auto-reply on first message
-
-            setTimeout(() => {
-                const reply = replies[Math.floor(Math.random() * replies.length)];
-                CHAT.sendMessage(currentChatId, currentContactId, reply);
+            try {
+                await CHAT_API.sendMessage(currentChatId, text);
                 loadMessages();
                 loadContacts();
-            }, 1500);
+            } catch (err) {
+                alert(err.message);
+            }
         }
 
         sendBtn.addEventListener('click', sendMessage);
@@ -631,15 +597,19 @@
         });
 
         // Close chat
-        closeChatBtn.addEventListener('click', () => {
+        closeChatBtn.addEventListener('click', async () => {
             if (currentChatId && confirm('Cerrar este chat?')) {
-                CHAT.closeChat(currentChatId);
-                currentChatId = null;
-                currentContactId = null;
-                noChat.style.display = 'flex';
-                activeChat.style.display = 'none';
-                clearInterval(chatPollInterval);
-                loadContacts();
+                try {
+                    await CHAT_API.closeChat(currentChatId);
+                    currentChatId = null;
+                    currentContactId = null;
+                    noChat.style.display = 'flex';
+                    activeChat.style.display = 'none';
+                    clearInterval(chatPollInterval);
+                    loadContacts();
+                } catch (err) {
+                    alert(err.message);
+                }
             }
         });
 
@@ -653,8 +623,25 @@
         document.getElementById('contactsSearch').addEventListener('input', loadContacts);
 
         // Init
-        loadContacts();
-        setInterval(loadContacts, 5000);
+        (async () => {
+            session = await AUTH_API.requireAuth(['client', 'employee', 'admin']);
+            if (!session) return;
+
+            isEmployee = session.role === 'employee' || session.role === 'admin';
+
+            document.getElementById('headerName').textContent = session.name;
+            document.getElementById('headerAvatar').textContent = session.avatar;
+            document.getElementById('headerRole').textContent =
+                session.role === 'admin' ? 'Administrador' :
+                session.role === 'employee' ? 'Empleado' : 'Cliente';
+
+            if (session.role === 'admin') {
+                document.getElementById('adminLink').style.display = '';
+            }
+
+            loadContacts();
+            setInterval(loadContacts, 5000);
+        })();
     </script>
 </body>
 </html>

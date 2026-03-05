@@ -233,7 +233,7 @@
         </div>
     </div>
 
-    <script src="js/auth.js"></script>
+    <script src="js/api.js"></script>
     <script>
         // Theme
         const themeToggle = document.getElementById('themeToggle');
@@ -258,12 +258,14 @@
         });
 
         // Redirect if already logged in
-        if (AUTH.isLoggedIn()) {
-            const s = AUTH.getSession();
-            if (s.role === 'admin') window.location.href = 'admin.html';
-            else if (s.role === 'employee') window.location.href = 'support.html';
-            else window.location.href = 'index.html';
-        }
+        (async () => {
+            const user = await AUTH_API.getSession();
+            if (user) {
+                if (user.role === 'admin') window.location.href = 'admin.html';
+                else if (user.role === 'employee') window.location.href = 'support.html';
+                else window.location.href = 'index.html';
+            }
+        })();
 
         // Tabs
         document.querySelectorAll('.auth-tab').forEach(tab => {
@@ -303,27 +305,26 @@
         }
 
         // Login
-        document.getElementById('loginForm').addEventListener('submit', (e) => {
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             const email = document.getElementById('loginEmail').value;
             const password = document.getElementById('loginPassword').value;
-            const result = AUTH.login(email, password);
 
-            if (!result.success) {
-                showError(result.message);
-                return;
+            try {
+                const result = await AUTH_API.login(email, password);
+                showSuccess('Inicio de sesion exitoso! Redirigiendo...');
+                setTimeout(() => {
+                    if (result.user.role === 'admin') window.location.href = 'admin.html';
+                    else if (result.user.role === 'employee') window.location.href = 'support.html';
+                    else window.location.href = 'index.html';
+                }, 800);
+            } catch (err) {
+                showError(err.message);
             }
-
-            showSuccess('Inicio de sesion exitoso! Redirigiendo...');
-            setTimeout(() => {
-                if (result.user.role === 'admin') window.location.href = 'admin.html';
-                else if (result.user.role === 'employee') window.location.href = 'support.html';
-                else window.location.href = 'index.html';
-            }, 800);
         });
 
         // Register
-        document.getElementById('registerForm').addEventListener('submit', (e) => {
+        document.getElementById('registerForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             const name = document.getElementById('regName').value;
             const email = document.getElementById('regEmail').value;
@@ -335,18 +336,16 @@
                 return;
             }
 
-            const result = AUTH.register(name, email, password, 'client');
-
-            if (!result.success) {
-                showError(result.message);
-                return;
+            try {
+                await AUTH_API.register(name, email, password);
+                showSuccess('Cuenta creada exitosamente! Ahora inicia sesion.');
+                document.getElementById('registerForm').reset();
+                setTimeout(() => {
+                    document.querySelector('[data-tab="login"]').click();
+                }, 1500);
+            } catch (err) {
+                showError(err.message);
             }
-
-            showSuccess('Cuenta creada exitosamente! Ahora inicia sesion.');
-            document.getElementById('registerForm').reset();
-            setTimeout(() => {
-                document.querySelector('[data-tab="login"]').click();
-            }, 1500);
         });
     </script>
 </body>
