@@ -17,6 +17,27 @@
                 <a href="#productos" class="nav-link">Productos</a>
                 <a href="#ofertas" class="nav-link">Ofertas</a>
                 <a href="support.html" class="nav-link">Soporte</a>
+                <div class="nav-user-wrapper" id="navUserWrapper" style="display:none;">
+                    <button class="nav-link nav-user-btn" id="navUserBtn">
+                        <span id="navUserAvatar">👤</span>
+                        <span id="navUserName">Mi Cuenta</span>
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
+                    </button>
+                    <div class="nav-user-dropdown" id="navUserDropdown">
+                        <div class="nav-user-info">
+                            <span id="navDropdownAvatar" style="font-size:1.5rem;">👤</span>
+                            <div>
+                                <div id="navDropdownName" style="font-weight:600;"></div>
+                                <div id="navDropdownRole" style="font-size:0.75rem;color:var(--gray);"></div>
+                            </div>
+                        </div>
+                        <div class="nav-user-divider"></div>
+                        <a href="#" id="navDropdownPanel" class="nav-user-option">📊 Panel</a>
+                        <a href="support.html" class="nav-user-option">💬 Soporte</a>
+                        <div class="nav-user-divider"></div>
+                        <button class="nav-user-option nav-user-logout" id="navLogoutBtn">🚪 Cerrar Sesion</button>
+                    </div>
+                </div>
                 <a href="login.html" class="nav-link" id="navLogin">Mi Cuenta</a>
             </nav>
             <div class="header-actions">
@@ -48,6 +69,7 @@
         <a href="#ofertas" class="nav-link">Ofertas</a>
         <a href="support.html" class="nav-link">Soporte</a>
         <a href="login.html" class="nav-link" id="navLoginMobile">Mi Cuenta</a>
+        <button class="nav-link nav-mobile-logout" id="navMobileLogout" style="display:none;color:#d63031;border:none;background:none;cursor:pointer;font:inherit;">🚪 Cerrar Sesion</button>
     </div>
 
     <!-- Hero Section -->
@@ -256,18 +278,58 @@
         // Update nav links based on login state
         (async () => {
             const userSession = await AUTH_API.getSession();
+            const navLogin = document.getElementById('navLogin');
+            const navLoginMobile = document.getElementById('navLoginMobile');
+            const navUserWrapper = document.getElementById('navUserWrapper');
+
             if (userSession) {
-                const navLogin = document.getElementById('navLogin');
-                const navLoginMobile = document.getElementById('navLoginMobile');
-                if (navLogin) {
-                    navLogin.textContent = userSession.name.split(' ')[0];
-                    if (userSession.role === 'admin') navLogin.href = 'admin.html';
-                    else navLogin.href = 'support.html';
+                // Hide simple link, show dropdown
+                if (navLogin) navLogin.style.display = 'none';
+                if (navUserWrapper) navUserWrapper.style.display = 'block';
+
+                // Set user info
+                document.getElementById('navUserAvatar').textContent = userSession.avatar || '👤';
+                document.getElementById('navUserName').textContent = userSession.name.split(' ')[0];
+                document.getElementById('navDropdownAvatar').textContent = userSession.avatar || '👤';
+                document.getElementById('navDropdownName').textContent = userSession.name;
+                const roleLabels = { admin: 'Administrador', employee: 'Empleado', client: 'Cliente' };
+                document.getElementById('navDropdownRole').textContent = roleLabels[userSession.role] || userSession.role;
+
+                // Panel link
+                const panelLink = document.getElementById('navDropdownPanel');
+                if (userSession.role === 'admin') {
+                    panelLink.href = 'admin.html';
+                    panelLink.textContent = '📊 Panel Admin';
+                } else {
+                    panelLink.href = 'support.html';
+                    panelLink.textContent = '💬 Mis Chats';
                 }
+
+                // Toggle dropdown
+                const btn = document.getElementById('navUserBtn');
+                const dropdown = document.getElementById('navUserDropdown');
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    dropdown.classList.toggle('active');
+                });
+                document.addEventListener('click', () => dropdown.classList.remove('active'));
+
+                // Logout
+                document.getElementById('navLogoutBtn').addEventListener('click', async () => {
+                    await AUTH_API.logout();
+                });
+
+                // Mobile
                 if (navLoginMobile) {
                     navLoginMobile.textContent = userSession.name.split(' ')[0];
-                    if (userSession.role === 'admin') navLoginMobile.href = 'admin.html';
-                    else navLoginMobile.href = 'support.html';
+                    navLoginMobile.href = userSession.role === 'admin' ? 'admin.html' : 'support.html';
+                }
+                const mobileLogout = document.getElementById('navMobileLogout');
+                if (mobileLogout) {
+                    mobileLogout.style.display = 'block';
+                    mobileLogout.addEventListener('click', async () => {
+                        await AUTH_API.logout();
+                    });
                 }
             }
         })();
