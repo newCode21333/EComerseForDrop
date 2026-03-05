@@ -411,6 +411,25 @@ themeToggle.addEventListener('click', () => {
     setTheme(!isDark);
 });
 
+// ===== Auto-refresh: detect DB changes from Python app =====
+let lastUpdate = null;
+async function checkForUpdates() {
+    try {
+        const res = await fetch('/api/products/last-update');
+        const data = await res.json();
+        if (data.success && data.last_update) {
+            if (lastUpdate && lastUpdate !== data.last_update) {
+                // DB was updated externally (Python app), reload products
+                loadProducts();
+            }
+            lastUpdate = data.last_update;
+        }
+    } catch (e) {
+        // Server not available, ignore
+    }
+}
+setInterval(checkForUpdates, 10000); // Check every 10 seconds
+
 // ===== Init =====
 loadProducts();
 updateCartUI();

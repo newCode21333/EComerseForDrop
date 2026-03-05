@@ -46,6 +46,13 @@ router.get('/:id', (req, res) => {
     res.json({ success: true, product });
 });
 
+// Public: GET /api/products/last-update - check last update time (for auto-refresh)
+router.get('/last-update', (req, res) => {
+    const db = getDb();
+    const row = db.prepare("SELECT MAX(updated_at) as last FROM products").get();
+    res.json({ success: true, last_update: row.last });
+});
+
 // Public: GET /api/products/categories/list
 router.get('/categories/list', (req, res) => {
     const db = getDb();

@@ -1,3 +1,8 @@
 node_modules/
 database/*.db
+database/*.db-wal
+database/*.db-shm
 .env
+__pycache__/
+*.pyc
+tools/inventario_export.csv
