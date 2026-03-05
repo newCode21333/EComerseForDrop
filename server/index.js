@@ -2,6 +2,7 @@ const express = require('express');
 const cookieParser = require('cookie-parser');
 const cors = require('cors');
 const path = require('path');
+const { ensureDb } = require('./db');
 
 const { router: authRouter } = require('./routes/auth');
 const usersRouter = require('./routes/users');
@@ -32,8 +33,10 @@ app.get('*', (req, res) => {
     }
 });
 
-app.listen(PORT, () => {
-    console.log(`
+// Initialize database, then start server
+ensureDb().then(() => {
+    app.listen(PORT, () => {
+        console.log(`
   ╔══════════════════════════════════════════╗
   ║          DropShop Server v1.0            ║
   ╠══════════════════════════════════════════╣
@@ -47,5 +50,9 @@ app.listen(PORT, () => {
   ║  Admin:    admin@dropshop.com / admin123 ║
   ║  Empleado: carlos@dropshop.com / emp123  ║
   ╚══════════════════════════════════════════╝
-    `);
+        `);
+    });
+}).catch(err => {
+    console.error('Error al inicializar la base de datos:', err);
+    process.exit(1);
 });
